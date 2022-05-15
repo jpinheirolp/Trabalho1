@@ -37,20 +37,43 @@ elemento_matriz_l = 0
 
 def metodo_lu(matriz_A:np.matrix,vetor_b:np.array) -> np.array: 
     n_linhas = matriz_A.shape[0]
-    matriz_resultante = np.identity(n_linhas)
+    matriz_A = matriz_A.astype(float)
+    vetor_b = vetor_b.astype(float)
+    #fatoracao LU
     for k in range(n_linhas - 1):
         pivot = matriz_A[k][k]
-        
         for i in range(n_linhas - k -1):
             i += k + 1
             elemento_matriz_l = matriz_A[i][k] / pivot  
-            matriz_resultante[i][k] = elemento_matriz_l    
             matriz_A[i][k] = elemento_matriz_l 
-            print(matriz_resultante)
+            
             for j in range(n_linhas - k - 1):
                 j += k + 1
                 matriz_A[i][j] -= matriz_A[k][j] * elemento_matriz_l
-    return matriz_A
+    print(matriz_A)
+
+    #substituicao pra frente Ly = b
+    for i in range(n_linhas ):
+       
+        for j in range(i):
+            
+            vetor_b[i] -= vetor_b[j]*matriz_A[i][j]
+    vetor_x = vetor_b[:]
+    print(vetor_b,"y")      
+    #retrosubstituicao Ux = y
+    for i in range(n_linhas ):
+        i = n_linhas - i - 1
+        print(vetor_b,i) 
+        vetor_b[i] = vetor_b[i] / matriz_A[i][i]
+
+        for j in range(n_linhas - i - 1 ):
+            j += i + 1
+            print(i,j)
+            print
+            vetor_b[i] -= (vetor_b[j] * matriz_A[i][j]) /  matriz_A[i][i]
+            
+    
+    return matriz_A, vetor_b
 
 vetor_b = np.array([3,6,10])
 
