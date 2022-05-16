@@ -30,10 +30,24 @@ programa e;
 import numpy as np
 import argparse
 
-from numpy import mat
 
+def confere_matriz_quadrada(matriz:np.matrix) -> bool:
+    if matriz.shape[0] == matriz.shape[1]:
+        return True
+    return False
 
-def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float]):
+def confere_simetria( matriz: np.matrix ) -> bool:
+    if not confere_matriz_quadrada(matriz_A):
+        return False
+    for linha in range(matriz.shape[0]): 
+        for col in range(matriz.shape[1] - linha):
+            col += linha
+           
+            if matriz[linha][col] != matriz[col][linha]: # vamo testar essa func
+                return False
+    return True   
+
+def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
     # VetorX é o vetor x0 ate o x...
     
     # Passo 1 assumir um vetor inicial X0 como sendo um autovetor da solucao do problema
@@ -47,37 +61,23 @@ def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm:f
     residuo=np.inf
     numero_iteracoes = 0
     # Passo 2 calcular os problemas(passos 2-5) iterativamente alterando o vetor X0
-    # condiçao de parada sendo a tolerancia maxima 10^-3 
-    while residuo >= TOLm:
+    # condicao de parada sendo a tolerancia maxima 10^-3 
+    while (residuo >= TOLm) and (numero_iteracoes <= 100):
         numero_iteracoes += 1
         # Passo 3 calcular multiplicacao
-        vetorX=np.matmul( vetorX, matriz_A)
+        vetorX=np.matmul(vetorX, matriz_A)
         # Passo 4 normalizar Y pelo maior valor ( norma infinita )
         # norma infinita do vetor x
-        lambda_atual = float(np.linalg.norm(vetorX,np.inf,axis=0) )   
+        lambda_atual = float(np.linalg.norm(vetorX,np.inf,axis=0))   
         vetorX = vetorX/lambda_atual
         # Passo 5 Calcular residuo
-        residuo = np.abs( (lambda_atual - lambda_anterior) / lambda_atual )
+        residuo = np.abs((lambda_atual - lambda_anterior) / lambda_atual)
         lambda_anterior = lambda_atual
     
-    return vetorX,residuo, numero_iteracoes
+    return vetorX, residuo, numero_iteracoes  
 
-# 
-def confere_simetria( matriz_A: np.matrix ) -> bool:
-    if matriz_A.shape[0] != matriz_A.shape[1]:
-        print("matriz nao quadrada")
-        return False
-    for linha in range(matriz_A.shape[0]): 
-        for col in range(matriz_A.shape[1] - linha):
-            col += linha
-           
-            if matriz_A[linha][col] != matriz_A[col][linha]: # vamo testar essa func
-                return False
-    return True        
-
-def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix ) -> tuple([float,int,int]):
-    if matriz_A.shape[0] != matriz_A.shape[1]:
-        print("matriz nao quadrada")
+def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> tuple([float,int,int]):
+    if not confere_matriz_quadrada(matriz_A):
         return False
     maior_elemento = 0
     linha_maior_elemento = 0
@@ -94,7 +94,7 @@ def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix ) -> tuple([float,in
 
     return maior_elemento, linha_maior_elemento, coluna_maior_elemento       
 
-def constroi_matriz_rotacao( nlinhas : int, i : int, j : int, Aij : float, Aii : float, Ajj : float ) -> np.matrix:
+def constroi_matriz_rotacao( nlinhas:int, i:int, j:int, Aij:float, Aii:float, Ajj:float ) -> np.matrix:
     matriz_resultante = np.identity(nlinhas)
     angulo_rotacao = 0
     if Aii == Ajj:
@@ -109,7 +109,7 @@ def constroi_matriz_rotacao( nlinhas : int, i : int, j : int, Aij : float, Aii :
 
     return matriz_resultante
 
-def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001):
+def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001) -> tuple([np.matrix,np.matrix,int]):
     if not confere_simetria(matriz_A):
         print("Error: Nao e possivel usar jacobi em matriz nao simetrica")
         exit()
@@ -119,13 +119,14 @@ def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001):
     matriz_x = np.identity(nlinhas)
     
     maior_elemento=np.inf
+    numero_iteracoes=0
     #passo 2
-    while(maior_elemento > TOLm):
+    while(maior_elemento > TOLm) and (numero_iteracoes <= 100):
         #passo 2.1
         maior_elemento, i, j = get_maior_elemento_matriz_simetrica(matriz_A)
         #passo 2.2 
         matriz_p = constroi_matriz_rotacao(nlinhas,i,j, matriz_A[i][j], matriz_A[i][i], matriz_A[j][j])
-        print("p\n",matriz_p)
+        # print("p\n",matriz_p)
         #passo 2.3
         matriz_A = np.matmul(matriz_p.T,matriz_A)
         #print(matriz_A,"\n")
@@ -133,13 +134,14 @@ def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001):
         #print(matriz_A,"\n")
         matriz_x = np.matmul(matriz_x,matriz_p)
         #print(matriz_x,"\n")
+        numero_iteracoes+=1
     
-    return matriz_x
+    return matriz_x.diagonal(), matriz_A, numero_iteracoes
     
 
 
 
-# def main():
+def main():
 #     parser = argparse.ArgumentParser(description='Programa de Algebra Linear')
 #     parser.add_argument('-im', '--input-matriz', type=str, help='input_matriz (arquivo de entrada) que representa a matriz A')
 #     parser.add_argument('-TOLm', '--tolerancia-maxima', type=float, help='tolerancia_maxima (default: 0.001) usado para o caso de iterativo')
@@ -151,19 +153,11 @@ def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001):
 
 #     print(MatrizA)
 
-matriz_A =np.loadtxt('matrizteste.txt', dtype=float, delimiter=' ')
-#print(metodo_potencia(matriz_A))
-print(matriz_A)
-print(metodo_jacobi(matriz_A))
-# if __name__ == '__main__':
-#     main()
+    matriz_A =np.loadtxt('matrizteste.txt', dtype=float, delimiter=' ')
+    #print(metodo_potencia(matriz_A))
+    # print(matriz_A)
+    metodo,jacobi,null = metodo_jacobi(matriz_A)
+    print(metodo,"\n\n",jacobi)
 
-'''
-1.0
-0.2
-0.0
-1.0
-0.5
-1.0
-el major 1.0
-'''  
+if __name__ == '__main__':
+    main()

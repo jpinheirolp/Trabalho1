@@ -67,32 +67,6 @@ matriz A para a solução do sistema e equações);
 # Metodo da potencia
 # Metodos de jacobi
 
-# Trabalho 3
-'''
-Prepare um programa computacional (na linguagem de sua preferência), dependendo da
-escolha do usuário, para obter por interpolação (método Lagrange) ou regressão multilinear o
-valor aproximado de uma função num determinando ponto.
-1. Interpolação (ICOD =1);
-2. Regressão (ICOD =2)
-Além disto, quando for requisitado pelo usuário e a técnica de solução permitir (caso contrário
-deve ser emitido um “warning”), que seja efetuado o cálculo o determinante de A.
-
-INPUTS do Programa (arquivo de entrada):
-a) ICOD relativo ao método de análise
-b) N - número de pares de pontos (Xi, Yi)
-c) X - coordenada do ponto que se deseja calcular o valor de y
-
-OUTPUTS do Programa (arquivo de saída):
-a) Valor de y estimado
-b) Possíveis “erros de uso”;
-Obs.: o programa deve ser desenvolvido visando o armazenamento mínimo de dados na
-memória do computador
-A entrega deverá conter:
-1. Impressão dos arquivos com as rotinas desenvolvidas (todos juntos num mesmo pdf)
-2. Um “pseudo” manual do usuário - orientações mínimas de como usar o programa e;
-3. Um exemplo com dados de entrada e de saída
-'''
-
 # load data from file parsing inputs
 '''
 flags:
