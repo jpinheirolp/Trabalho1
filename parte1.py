@@ -36,6 +36,19 @@ from parte2 import metodo_potencia
 pivot = 0
 elemento_matriz_l = 0
 
+def confere_diagonal_dominante(matriz:np.matrix) -> bool:
+    n_linhas=matriz.shape[0]
+    for i in range(n_linhas):
+        somalinha = np.sum(np.absolute(matriz[i]))-matriz[i][i]
+        if matriz[i][i] <= somalinha:
+            return False
+    for j in range(n_linhas):
+        somalinha = np.sum(np.absolute(matriz[:][j]))-matriz[j][j]
+        if matriz[j][j] <= somalinha:
+            return False
+    
+    return True
+  
 
 def confere_positiva_definida(matriz:np.matrix) -> bool:
     # Calcular se todos os autovalores sao positivos
@@ -43,12 +56,15 @@ def confere_positiva_definida(matriz:np.matrix) -> bool:
         return True
     return False
 
-def substituicao_para_frente(matriz_A:np.matrix, vetor_B:np.array) -> np.array:
+def substituicao_para_frente(matriz_A:np.matrix, vetor_B:np.array, method:str ) -> np.array:
     n_linhas=matriz_A.shape[0]
+    ajustametodo=0 #lu
+    if method == "choleski":
+        ajustametodo= 1
     for i in range(n_linhas):
-        vetor_B[i] = vetor_B[i] / matriz_A[i][i]
+        vetor_B[i] = vetor_B[i] / (matriz_A[i][i] ** ajustametodo)
         for j in range(i):
-            vetor_B[i] -= (vetor_B[j]*matriz_A[i][j]) / matriz_A[i][i]
+            vetor_B[i] -= (vetor_B[j]*matriz_A[i][j]) / (matriz_A[i][i] ** ajustametodo)
     return vetor_B
 
 def retrosubstituicao(matriz_A:np.matrix, vetor_B:np.array) -> np.array:
@@ -80,8 +96,9 @@ def metodo_lu(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
                 matriz_A[i][j] -= matriz_A[k][j] * elemento_matriz_l
 
     #substituicao pra frente Ly = b
-    vetor_B = substituicao_para_frente(matriz_A,vetor_B)
-
+    # print("matriz lu\n",matriz_A)
+    vetor_B = substituicao_para_frente(matriz_A,vetor_B,"cholesky")
+    # print("vetor y\n",vetor_B)
     #retrosubstituicao Ux = y
     vetor_B = retrosubstituicao(matriz_A,vetor_B)
             
@@ -113,7 +130,7 @@ def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
 
     # print(matriz_A)
     #substituicao pra frente Ly = b
-    vetor_B = substituicao_para_frente(matriz_A,vetor_B)
+    vetor_B = substituicao_para_frente(matriz_A,vetor_B,"lu")
     # print(vetor_B)
     #retrosubstituicao Ux = y
     vetor_B = retrosubstituicao(matriz_A,vetor_B)
@@ -122,6 +139,9 @@ def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
 
 def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
     # VetorX é o vetor x0 ate o x...
+    if not confere_diagonal_dominante(matriz_A):
+        print("Nao e diagonal dominante")
+        exit()
     n_linhas = matriz_A.shape[0]
     matriz_A = matriz_A.astype(float)
     vetorX = vetorX.astype(float)
@@ -132,7 +152,7 @@ def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.a
     numero_iteracoes = 0
     elemento_linha = 0
 
-    while (residuo >= TOLm) and (numero_iteracoes <= 100):
+    while (residuo >= TOLm):
         vetorX_atualizado = np.ones(shape=matriz_A.shape[0],dtype=float)
         numero_iteracoes += 1
         for i in range(n_linhas):
@@ -142,7 +162,7 @@ def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.a
             vetorX[i] = elemento_linha
             # print(vetorX_atualizado)
 
-        diferenca = vetorX_atualizado -vetorX
+        diferenca = vetorX_atualizado - vetorX
     
         # Passo 5 Calcular residuo
         residuo = np.abs(float(np.linalg.norm(diferenca,2,axis=0)) / float(np.linalg.norm(vetorX_atualizado,2,axis=0)))
@@ -151,6 +171,9 @@ def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.a
     return vetorX, residuo, numero_iteracoes  
 
 def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
+    if not confere_diagonal_dominante(matriz_A):
+        print("Nao e diagonal dominante")
+        exit()
     # VetorX é o vetor x0 ate o x...
     n_linhas = matriz_A.shape[0]
     matriz_A = matriz_A.astype(float)
@@ -161,7 +184,7 @@ def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.array , vetorX
     residuo=np.inf
     numero_iteracoes = 0
 
-    while (residuo >= TOLm) and (numero_iteracoes <= 100):
+    while (residuo >= TOLm):
         vetorX_velho = np.copy(vetorX)
         numero_iteracoes += 1
         for i in range(n_linhas):
@@ -180,7 +203,6 @@ def main():
     matriz_A = np.loadtxt('matrizteste.txt', dtype=float, delimiter=' ')
     vetor_B = np.loadtxt('vetorteste.txt', dtype=float, delimiter=' ')
 
-    print("xablau")
     print(metodo_iterativo_jacobi(matriz_A, vetor_B))
     print(metodo_iterativo_gauss_seidel(matriz_A, vetor_B))
 

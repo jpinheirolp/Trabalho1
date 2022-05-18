@@ -30,7 +30,7 @@ from parte1 import metodo_lu
 
 def produtorio_phi(vetor_pts_x:np.array, cordenada_i: int,pt_x: float) -> float:
     produtorio = 1
-    for k in range(len(vetor_pts_x)):
+    for k in range(vetor_pts_x.size):
         if k == cordenada_i:
             continue
         produtorio *= (pt_x - vetor_pts_x[k]) / (vetor_pts_x[cordenada_i] - vetor_pts_x[k]) 
@@ -39,34 +39,33 @@ def produtorio_phi(vetor_pts_x:np.array, cordenada_i: int,pt_x: float) -> float:
     
 
 def interpolacao_lagrange(vetor_pts_x:np.array, vetor_pts_y:np.array, pt_x: float) -> float:
-    lista_auxiliar = []
-    for i in range(len(vetor_pts_x)):
-        lista_auxiliar.append(produtorio_phi(vetor_pts_x,i,pt_x))
-    vetort_phi = np.array(lista_auxiliar)
-
-    return np.dot(vetor_pts_y,vetort_phi)
+    saida = 0.0
+    for i in range(vetor_pts_x.size):
+        saida += vetor_pts_y[i] * produtorio_phi(vetor_pts_x,i,pt_x)
+        
+    return saida
     
 
 def regressao_linear(vetor_x:np.array, vetor_y:np.array, pt_x:float) -> tuple([float,np.array]):
     matriz_P=np.stack((np.ones(vetor_x.size),vetor_x),axis=1)
     matriz_P_transpose=np.transpose(matriz_P)
     matriz_A=(np.matmul(matriz_P_transpose,matriz_P))
-    print("matriz_A:\n",matriz_A)
+    # print("matriz_A:\n",matriz_A)
     vetor_C=np.matmul(matriz_P_transpose,vetor_y)
-    print("VetorC:\n",vetor_C)
-    B=metodo_iterativo_gauss_seidel(matriz_A,vetor_C)[0]
-    print("metodo_iterativo_gauss_seidel:\n",B)
-    print("metodo_lu:\n",metodo_lu(matriz_A,vetor_C)[1])
-    print("metodo burro:\n",np.matmul(np.linalg.inv(matriz_A),vetor_C))
+    # print("VetorC:\n",vetor_C)
+    B=metodo_lu(matriz_A,vetor_C)[1]
+    # print("metodo_iterativo_gauss_seidel:\n",B)
+    # print("metodo_lu:\n",metodo_lu(matriz_A,vetor_C)[1])
+    # print("metodo burro:\n",np.matmul(np.linalg.inv(matriz_A),vetor_C))
     
     return (B[0]+B[1]*pt_x),B
 
 def main():
-    # vetor_teste_x=np.array([-2,0,1])
-    # vetor_teste_y=np.array([-27,-1,0])    
-    # print(interpolacao_lagrange(vetor_teste_x,vetor_teste_y,12.0))
+    vetor_teste_x=np.array([-2,0,1])
+    vetor_teste_y=np.array([-27,-1,0])    
+    print(interpolacao_lagrange(vetor_teste_x,vetor_teste_y,12.0))
     vetor_teste_x=np.array([1,2,3])
-    vetor_teste_y=np.array([2,3.5,6.5])    
+    vetor_teste_y=np.array([2,3.5,6.5])
     print(regressao_linear(vetor_teste_x,vetor_teste_y,12.0))
 
 if __name__ == '__main__':

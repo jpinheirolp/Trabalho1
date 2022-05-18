@@ -37,7 +37,7 @@ def confere_matriz_quadrada(matriz:np.matrix) -> bool:
     return False
 
 def confere_simetria( matriz: np.matrix ) -> bool:
-    if not confere_matriz_quadrada(matriz_A):
+    if not confere_matriz_quadrada(matriz):
         return False
     for linha in range(matriz.shape[0]): 
         for col in range(matriz.shape[1] - linha):
