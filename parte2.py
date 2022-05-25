@@ -1,4 +1,5 @@
 import functools
+from typing import Tuple
 import numpy as np
 import argparse
 
@@ -19,7 +20,7 @@ def confere_simetria(matriz: np.matrix) -> bool:
                 return False
     return True   
 
-def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm: float = 0.0001) -> tuple([np.array,list,int]):
+def metodo_potencia(matriz_A: np.matrix, vetorX: np.ndarray = np.array([]), TOLm: float = 0.0001) -> Tuple[np.ndarray,list,int,float]:
     # VetorX é o vetor x0 ate o x...
     
     # Passo 1 assumir um vetor inicial X0 como sendo um autovetor da solucao do problema
@@ -50,9 +51,10 @@ def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm: 
     
     return vetorX, historico_residuo, numero_iteracoes , lambda_atual 
 
-def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> tuple([float,int,int]):
+def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> Tuple[float,int,int]:
     if not confere_matriz_quadrada(matriz_A):
-        return False
+        print("Error: Nao e possivel usar get_maior_elemento_matriz_simetrica em matriz nao quadrada")
+        exit()
     maior_elemento = 0
     linha_maior_elemento = 0
     coluna_maior_elemento = 0
@@ -68,7 +70,7 @@ def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> tuple([float,int
 
     return maior_elemento, linha_maior_elemento, coluna_maior_elemento       
 
-def constroi_matriz_rotacao(nlinhas: int,i: int,j: int,Aij: float,Aii: float,Ajj: float) -> np.matrix:
+def constroi_matriz_rotacao(nlinhas: int,i: int,j: int,Aij: float,Aii: float,Ajj: float) -> np.ndarray:
     matriz_resultante = np.identity(nlinhas)
     angulo_rotacao = 0
     if Aii == Ajj:
@@ -83,7 +85,7 @@ def constroi_matriz_rotacao(nlinhas: int,i: int,j: int,Aij: float,Aii: float,Ajj
 
     return matriz_resultante
 
-def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001) -> tuple([np.matrix,np.matrix,int]):
+def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001) -> Tuple[np.ndarray,np.matrix,list,int]:
     if not confere_simetria(matriz_A):
         print("Error: Nao e possivel usar jacobi em matriz nao simetrica")
         exit()

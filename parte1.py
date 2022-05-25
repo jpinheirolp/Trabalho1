@@ -1,4 +1,5 @@
 import argparse
+from typing import Tuple
 import numpy as np
 import functools
 from parte2 import metodo_potencia
@@ -27,7 +28,7 @@ def confere_positiva_definida(matriz:np.matrix) -> bool:
             return False
     return True
 
-def substituicao_para_frente(matriz_A:np.matrix, vetor_B:np.array, method:str ) -> np.array:
+def substituicao_para_frente(matriz_A:np.matrix, vetor_B:np.ndarray, method:str ) -> np.ndarray:
     n_linhas=matriz_A.shape[0]
     ajustametodo=0 #lu
     if method == "choleski":
@@ -38,7 +39,7 @@ def substituicao_para_frente(matriz_A:np.matrix, vetor_B:np.array, method:str ) 
             vetor_B[i] -= (vetor_B[j]*matriz_A[i][j]) / (matriz_A[i][i] ** ajustametodo)
     return vetor_B
 
-def retrosubstituicao(matriz_A:np.matrix, vetor_B:np.array) -> np.array:
+def retrosubstituicao(matriz_A:np.matrix, vetor_B:np.ndarray) -> np.ndarray:
     n_linhas=matriz_A.shape[0]
     for i in range(n_linhas):
         i = n_linhas - i - 1
@@ -50,7 +51,7 @@ def retrosubstituicao(matriz_A:np.matrix, vetor_B:np.array) -> np.array:
         
     return vetor_B 
 
-def metodo_lu(matriz_A:np.matrix,vetor_B:np.array) -> np.array: 
+def metodo_lu(matriz_A:np.matrix,vetor_B:np.ndarray) -> Tuple[np.matrix,np.ndarray]: 
     n_linhas = matriz_A.shape[0]
     matriz_A = matriz_A.astype(float)
     vetor_B = vetor_B.astype(float)
@@ -75,7 +76,7 @@ def metodo_lu(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
             
     return matriz_A, vetor_B
     
-def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
+def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.ndarray) -> Tuple[np.matrix,np.ndarray]:
     if not confere_positiva_definida(matriz_A):
         print("Error: não é possivel executar pois Nao e positiva definida")
         exit()
@@ -108,7 +109,7 @@ def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
 
     return matriz_A , vetor_B
 
-def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
+def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.ndarray , vetorX: np.ndarray = np.array([]), TOLm:float = 0.0001) -> Tuple[np.ndarray,list,int]:
     # VetorX é o vetor x0 ate o x...
     if not confere_diagonal_dominante(matriz_A):
         print("Error: não é possivel executar quando diagonal nao e dominante")
@@ -143,7 +144,7 @@ def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.a
 
     return vetorX, historico_residuo, numero_iteracoes  
 
-def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,list,int]):
+def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.ndarray , vetorX: np.ndarray = np.array([]), TOLm:float = 0.0001) -> Tuple[np.ndarray,list,int]:
     if not confere_diagonal_dominante(matriz_A):
         print("Error: não é possivel executar quando diagonal nao e dominante")
         exit()

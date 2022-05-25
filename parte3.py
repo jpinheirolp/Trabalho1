@@ -1,8 +1,9 @@
 import argparse
+from typing import Tuple
 import numpy as np
 from parte1 import metodo_lu
 
-def produtorio_phi(vetor_pts_x:np.array, cordenada_i: int,pt_x: float) -> float:
+def produtorio_phi(vetor_pts_x:np.ndarray, cordenada_i: int,pt_x: float) -> float:
     produtorio = 1
     for k in range(vetor_pts_x.size):
         if k == cordenada_i:
@@ -10,14 +11,14 @@ def produtorio_phi(vetor_pts_x:np.array, cordenada_i: int,pt_x: float) -> float:
         produtorio *= (pt_x - vetor_pts_x[k]) / (vetor_pts_x[cordenada_i] - vetor_pts_x[k]) 
     return produtorio
 
-def interpolacao_lagrange(vetor_pts_x:np.array, vetor_pts_y:np.array, pt_x: float) -> float:
+def interpolacao_lagrange(vetor_pts_x:np.ndarray, vetor_pts_y:np.ndarray, pt_x: float) -> float:
     saida = 0.0
     for i in range(vetor_pts_x.size):
         saida += vetor_pts_y[i] * produtorio_phi(vetor_pts_x,i,pt_x)
         
     return saida
     
-def regressao_linear(vetor_x:np.array, vetor_y:np.array, pt_x:float, functions:list=[lambda x:1, lambda x:x]) -> tuple([float,float,np.array]):
+def regressao_linear(vetor_x:np.ndarray, vetor_y:np.ndarray, pt_x:float, functions:list=[lambda x:1, lambda x:x]) -> Tuple[float,float,np.ndarray]:
     matriz_P = np.zeros((len(functions),vetor_x.shape[0]))
     
     for function_i in range(len(functions)):
