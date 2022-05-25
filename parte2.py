@@ -1,32 +1,4 @@
-# Trabalho 2
-'''
-Prepare um programa computacional (na linguagem de sua preferência) para calcular os
-autovalores e autovetores de uma matriz A pelos métodos:
-1. Método da Potência (ICOD =1);
-2. Método de Jacobi (ICOD =2)
-Além disto, quando for requisitado pelo usuário e a técnica de solução permitir (caso contrário
-deve ser emitido um “warning”), que seja efetuado o cálculo o determinante de A.
-
-INPUTS do Programa (arquivo de entrada):
-a) a ordem N da matriz A (quadrada)
-b) ICOD relativo ao método de análise
-c) IDET - 0 não calcula determinante/ maior que 0 calcula o determinante
-d) TOLm - tolerância máxima para a solução iterativa
-
-OUTPUTS do Programa (arquivo de saída):
-a) Autovalores e autovetores da matriz A;
-b) Possíveis “erros de uso”;
-c) Determinante quando solicitado;
-d) Número de iterações para convergência.
-Obs.: o programa deve ser desenvolvido visando o armazenamento mínimo de dados na
-memória do computador
-
-A entrega deverá conter:
-1. Impressão dos arquivos com as rotinas desenvolvidas (todos juntos num mesmo pdf)
-2. Um “pseudo” manual do usuário impresso - orientações mínimas de como usar o
-programa e;
-3. Um exemplo impresso com dados de entrada e de saída
-'''
+import functools
 import numpy as np
 import argparse
 
@@ -36,7 +8,7 @@ def confere_matriz_quadrada(matriz:np.matrix) -> bool:
         return True
     return False
 
-def confere_simetria( matriz: np.matrix ) -> bool:
+def confere_simetria(matriz: np.matrix) -> bool:
     if not confere_matriz_quadrada(matriz):
         return False
     for linha in range(matriz.shape[0]): 
@@ -47,7 +19,7 @@ def confere_simetria( matriz: np.matrix ) -> bool:
                 return False
     return True   
 
-def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
+def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm: float = 0.0001) -> tuple([np.array,list,int]):
     # VetorX é o vetor x0 ate o x...
     
     # Passo 1 assumir um vetor inicial X0 como sendo um autovetor da solucao do problema
@@ -58,23 +30,25 @@ def metodo_potencia(matriz_A: np.matrix, vetorX: np.array = np.array([]), TOLm:f
     # Iniciando as variaveiss de calcular os passos 2-5 
     lambda_atual = 0
     lambda_anterior = np.linalg.norm(vetorX,ord=np.inf)
-    residuo=np.inf
+    residuo=1
     numero_iteracoes = 0
+    historico_residuo = []
     # Passo 2 calcular os problemas(passos 2-5) iterativamente alterando o vetor X0
-    # condicao de parada sendo a tolerancia maxima 10^-3 
-    while (residuo >= TOLm) and (numero_iteracoes <= 100):
+    # condicao de parada sendo a tolerancia maxima 10^-3
+    while (residuo >= TOLm):
         numero_iteracoes += 1
         # Passo 3 calcular multiplicacao
         vetorX=np.matmul(vetorX, matriz_A)
         # Passo 4 normalizar Y pelo maior valor ( norma infinita )
         # norma infinita do vetor x
-        lambda_atual = float(np.linalg.norm(vetorX,np.inf,axis=0))   
+        lambda_atual = float(np.linalg.norm(vetorX,ord=np.inf,axis=0))   
         vetorX = vetorX/lambda_atual
         # Passo 5 Calcular residuo
         residuo = np.abs((lambda_atual - lambda_anterior) / lambda_atual)
         lambda_anterior = lambda_atual
+        historico_residuo.append(residuo)
     
-    return vetorX, residuo, numero_iteracoes  
+    return vetorX, historico_residuo, numero_iteracoes , lambda_atual 
 
 def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> tuple([float,int,int]):
     if not confere_matriz_quadrada(matriz_A):
@@ -84,9 +58,9 @@ def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> tuple([float,int
     coluna_maior_elemento = 0
 
     for linha in range(matriz_A.shape[0]): 
-        for col in range(matriz_A.shape[1] - linha - 1):
-            col += linha + 1
-            
+        for col in range(matriz_A.shape[1]):
+            if linha == col:
+                continue
             if abs(matriz_A[linha][col]) > abs(maior_elemento): # vamo testar essa func
                 maior_elemento = matriz_A[linha][col] 
                 linha_maior_elemento = linha
@@ -94,7 +68,7 @@ def get_maior_elemento_matriz_simetrica(matriz_A: np.matrix) -> tuple([float,int
 
     return maior_elemento, linha_maior_elemento, coluna_maior_elemento       
 
-def constroi_matriz_rotacao( nlinhas:int, i:int, j:int, Aij:float, Aii:float, Ajj:float ) -> np.matrix:
+def constroi_matriz_rotacao(nlinhas: int,i: int,j: int,Aij: float,Aii: float,Ajj: float) -> np.matrix:
     matriz_resultante = np.identity(nlinhas)
     angulo_rotacao = 0
     if Aii == Ajj:
@@ -102,10 +76,10 @@ def constroi_matriz_rotacao( nlinhas:int, i:int, j:int, Aij:float, Aii:float, Aj
     else:
         angulo_rotacao = np.arctan( (2*Aij) / (Aii-Ajj) ) / 2
 
-    matriz_resultante[i][i] =  np.cos( angulo_rotacao )
-    matriz_resultante[i][j] =  np.sin( angulo_rotacao )
-    matriz_resultante[j][i] = -np.sin( angulo_rotacao )
-    matriz_resultante[j][j] =  np.cos( angulo_rotacao )
+    matriz_resultante[i][i] =  np.cos(angulo_rotacao)
+    matriz_resultante[i][j] =  np.sin(angulo_rotacao)
+    matriz_resultante[j][i] = -np.sin(angulo_rotacao)
+    matriz_resultante[j][j] =  np.cos(angulo_rotacao)
 
     return matriz_resultante
 
@@ -113,51 +87,100 @@ def metodo_jacobi(matriz_A:np.matrix,TOLm:float = 0.0001) -> tuple([np.matrix,np
     if not confere_simetria(matriz_A):
         print("Error: Nao e possivel usar jacobi em matriz nao simetrica")
         exit()
-        
     nlinhas = matriz_A.shape[0]
     #passo 1 primeiro comeca como identidade depois a matrizx e alterada
     matriz_x = np.identity(nlinhas)
-    
+    print(TOLm)
     maior_elemento=np.inf
     numero_iteracoes=0
+    historico_residuo = []
     #passo 2
-    while(maior_elemento > TOLm) and (numero_iteracoes <= 100):
+    while(maior_elemento > TOLm):
         #passo 2.1
         maior_elemento, i, j = get_maior_elemento_matriz_simetrica(matriz_A)
         #passo 2.2 
         matriz_p = constroi_matriz_rotacao(nlinhas,i,j, matriz_A[i][j], matriz_A[i][i], matriz_A[j][j])
-        # print("p\n",matriz_p)
         #passo 2.3
         matriz_A = np.matmul(matriz_p.T,matriz_A)
-        #print(matriz_A,"\n")
         matriz_A = np.matmul(matriz_A,matriz_p)
-        #print(matriz_A,"\n")
         matriz_x = np.matmul(matriz_x,matriz_p)
-        #print(matriz_x,"\n")
         numero_iteracoes+=1
+        historico_residuo.append(maior_elemento)
     
-    return matriz_x.diagonal(), matriz_A, numero_iteracoes
+    return matriz_A.diagonal(), matriz_x, historico_residuo, numero_iteracoes
     
-
-
-
 def main():
-#     parser = argparse.ArgumentParser(description='Programa de Algebra Linear')
-#     parser.add_argument('-im', '--input-matriz', type=str, help='input_matriz (arquivo de entrada) que representa a matriz A')
-#     parser.add_argument('-TOLm', '--tolerancia-maxima', type=float, help='tolerancia_maxima (default: 0.001) usado para o caso de iterativo')
-#     args = parser.parse_args()
-#     input_matriz = args.input_matriz
+    # Trabalho 2
+    '''
+    Prepare um programa computacional (na linguagem de sua preferência) para calcular os
+    autovalores e autovetores de uma matriz A pelos métodos:
+    1. Método da Potência (ICOD =1);
+    2. Método de Jacobi (ICOD =2)
+    Além disto, quando for requisitado pelo usuário e a técnica de solução permitir (caso contrário
+    deve ser emitido um “warning”), que seja efetuado o cálculo o determinante de A.
+
+    INPUTS do Programa (arquivo de entrada):
+    a) a ordem N da matriz A (quadrada)
+    b) ICOD relativo ao método de análise
+    c) IDET - 0 não calcula determinante/ maior que 0 calcula o determinante
+    d) TOLm - tolerância máxima para a solução iterativa
+
+    OUTPUTS do Programa (arquivo de saída):
+    a) Autovalores e autovetores da matriz A;
+    b) Possíveis “erros de uso”;
+    c) Determinante quando solicitado;
+    d) Número de iterações para convergência.
+    Obs.: o programa deve ser desenvolvido visando o armazenamento mínimo de dados na
+    memória do computador
+
+    A entrega deverá conter:
+    1. Impressão dos arquivos com as rotinas desenvolvidas (todos juntos num mesmo pdf)
+    2. Um “pseudo” manual do usuário impresso - orientações mínimas de como usar o
+    programa e;
+    3. Um exemplo impresso com dados de entrada e de saída
+    '''
+    parser = argparse.ArgumentParser(description='Programa 2 de Algebra Linear')
+    parser.add_argument('-im', '--matriz_A', type=str, help='Matriz A',required=True)
+    parser.add_argument('-ib', '--vetor_B', type=str, help='Vetor B',required=True)
+    parser.add_argument('-ic', '--icod', type=int, help='ICOD relativo ao método de análise\n 1 - Potencia\n 2 - Jacobi',required=True)
+    parser.add_argument('-id', '--idet', type=int, help='IDET',required=True)
+    parser.add_argument('-it', '--tol', type=float, help='TOLm',default=0.0001)
     
-#     # MatrizA =np.loadtxt(input_matriz, dtype=float, delimiter=' ')
-#     #VetorB = np.loadtxt(input_resultado, dtype=float, delimiter=' ')
+    args = parser.parse_args()
 
-#     print(MatrizA)
+    MatrizA =np.loadtxt(args.matriz_A, dtype=float, delimiter=' ')
+    VetorB =np.loadtxt(args.vetor_B, dtype=float, delimiter=' ')
 
-    matriz_A =np.loadtxt('matrizteste.txt', dtype=float, delimiter=' ')
-    #print(metodo_potencia(matriz_A))
-    # print(matriz_A)
-    metodo,jacobi,null = metodo_jacobi(matriz_A)
-    print(metodo,"\n\n",jacobi)
+    TOLm = args.tol
+    ICOD = args.icod
+    IDET = args.idet
+    
+    print(get_maior_elemento_matriz_simetrica(MatrizA))
+    if ICOD == 1:
+        print("Metodo da Potencia")
+        print("Matriz A:\n",MatrizA)
+        autovetor_potencia, historico_residuo, numero_iteracoes, maiorautovalor = metodo_potencia(matriz_A=MatrizA, TOLm=TOLm)
+        print("Autovetor:", autovetor_potencia)
+        print("Maior Autovalor:", maiorautovalor)
+        print("Residuo:", historico_residuo)
+        print("Numero de Iteracoes:", numero_iteracoes)
+        if IDET:
+            print("Nao e possivel calcular o determinante pelo metodo da potencia")
+            
+    elif ICOD == 2:
+        print("Metodo de Jacobi")
+        print("Matriz A:\n", MatrizA)
+        autovalores_jacobi, matriz_jacobi, historico_residuo, numero_iteracoes = metodo_jacobi(matriz_A=MatrizA, TOLm=TOLm)
+        print("Matriz Autovetores:\n", matriz_jacobi)
+        print("Autovalores: ", autovalores_jacobi)
+        print("Residuo:", historico_residuo)
+        print("Numero de Iteracoes: ", numero_iteracoes)
+        if IDET:
+            print("Determinante:",functools.reduce(lambda x,y: x*y, autovalores_jacobi))
+            print("det(A):",np.linalg.det(MatrizA) )
+    else:
+        print("Codigo de Metodo Invalido")
+        exit()
 
 if __name__ == '__main__':
     main()

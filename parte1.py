@@ -1,36 +1,6 @@
-# Trabalho 1
-'''
-Prepare um programa computacional (na linguagem de sua preferência) para efetuar a solução
-de um sistema linear de equações AX = B onde o usuário possa escolher entre os métodos:
-1. Decomposição LU (ICOD =1);
-2. Decomposição de Cholesky (ICOD =2)
-3. Procedimento iterativo Jacobi (ICOD =3) e
-4. Procedimento iterativo Gauss-Seidel (ICOD =4).
-
-Além disto, quando for requisitado pelo usuário e a técnica de solução permitir (caso contrário
-deve ser emitido um “warning”), que seja efetuado o cálculo o determinante de A.
-
-INPUTS do Programa (arquivo de entrada):
-a) ordem N do sistema de equações
-b) ICOD relativo ao método de análise
-c) IDET = 0 não calcula determinante ou maior que 0 calcula o determinante
-d) A matriz A e o vetor B
-e) TOLm - tolerância máxima para a solução iterativa (qdo for o caso)
-OUTPUTS do Programa (arquivo de saída):
-a) Solução do sistema X;
-b) Possíveis “erros de uso” (decomposições não são possíveis, possiblidade de não
-convergência, etc.)
-c) Determinante quando solicitado;
-d) Número de iterações para convergência e histórico da variação do erro (TOL) da
-solução nos casos dos métodos iterativos;
-
-Obs.:
-1) o programa deve ser desenvolvido visando o armazenamento mínimo de dados na
-memória do computador (por exemplo, não deve ser criada uma nova matriz similar a
-matriz A para a solução do sistema e equações);
-2) não use rotinas prontas disponíveis na literatura/internet.
-'''
+import argparse
 import numpy as np
+import functools
 from parte2 import metodo_potencia
 
 pivot = 0
@@ -52,9 +22,10 @@ def confere_diagonal_dominante(matriz:np.matrix) -> bool:
 
 def confere_positiva_definida(matriz:np.matrix) -> bool:
     # Calcular se todos os autovalores sao positivos
-    if min(metodo_potencia(matriz)[0]) >= 0:
-        return True
-    return False
+    for i in metodo_potencia(matriz)[0]:
+        if i < 0:
+            return False
+    return True
 
 def substituicao_para_frente(matriz_A:np.matrix, vetor_B:np.array, method:str ) -> np.array:
     n_linhas=matriz_A.shape[0]
@@ -97,7 +68,7 @@ def metodo_lu(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
 
     #substituicao pra frente Ly = b
     # print("matriz lu\n",matriz_A)
-    vetor_B = substituicao_para_frente(matriz_A,vetor_B,"cholesky")
+    vetor_B = substituicao_para_frente(matriz_A,vetor_B,"lu")
     # print("vetor y\n",vetor_B)
     #retrosubstituicao Ux = y
     vetor_B = retrosubstituicao(matriz_A,vetor_B)
@@ -105,8 +76,8 @@ def metodo_lu(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
     return matriz_A, vetor_B
     
 def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
-    if not confere_positiva_definida:
-        print("Nao e positiva definita")
+    if not confere_positiva_definida(matriz_A):
+        print("Error: não é possivel executar pois Nao e positiva definida")
         exit()
     n_linhas = matriz_A.shape[0]
     matriz_A = matriz_A.astype(float)
@@ -130,7 +101,7 @@ def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
 
     # print(matriz_A)
     #substituicao pra frente Ly = b
-    vetor_B = substituicao_para_frente(matriz_A,vetor_B,"lu")
+    vetor_B = substituicao_para_frente(matriz_A,vetor_B,"cholesky")
     # print(vetor_B)
     #retrosubstituicao Ux = y
     vetor_B = retrosubstituicao(matriz_A,vetor_B)
@@ -140,11 +111,12 @@ def metodo_cholesky(matriz_A:np.matrix,vetor_B:np.array) -> np.array:
 def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
     # VetorX é o vetor x0 ate o x...
     if not confere_diagonal_dominante(matriz_A):
-        print("Nao e diagonal dominante")
+        print("Error: não é possivel executar quando diagonal nao e dominante")
         exit()
     n_linhas = matriz_A.shape[0]
     matriz_A = matriz_A.astype(float)
     vetorX = vetorX.astype(float)
+    historico_residuo=[]
     if vetorX.any(0) or vetorX.size == 0:
         vetorX=np.ones(shape=matriz_A.shape[0])
 
@@ -167,14 +139,16 @@ def metodo_iterativo_jacobi(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.a
         # Passo 5 Calcular residuo
         residuo = np.abs(float(np.linalg.norm(diferenca,2,axis=0)) / float(np.linalg.norm(vetorX_atualizado,2,axis=0)))
         vetorX = vetorX_atualizado
-    
-    return vetorX, residuo, numero_iteracoes  
+        historico_residuo.append(residuo)
 
-def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,float,int]):
+    return vetorX, historico_residuo, numero_iteracoes  
+
+def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.array , vetorX: np.array = np.array([]), TOLm:float = 0.0001) -> tuple([np.array,list,int]):
     if not confere_diagonal_dominante(matriz_A):
-        print("Nao e diagonal dominante")
+        print("Error: não é possivel executar quando diagonal nao e dominante")
         exit()
     # VetorX é o vetor x0 ate o x...
+    historico_residuo=[]
     n_linhas = matriz_A.shape[0]
     matriz_A = matriz_A.astype(float)
     vetorX = vetorX.astype(float)
@@ -195,16 +169,93 @@ def metodo_iterativo_gauss_seidel(matriz_A: np.matrix,vetor_B: np.array , vetorX
     
         # Passo 5 Calcular residuo
         residuo = np.abs(float(np.linalg.norm(diferenca,2,axis=0)) / float(np.linalg.norm(vetorX,2,axis=0)))
+        historico_residuo.append(residuo)
     
-    return vetorX, residuo, numero_iteracoes
+    return vetorX, historico_residuo, numero_iteracoes
 
-# vetor_B = np.array([0.6,-0.3,-0.6])
 def main():
-    matriz_A = np.loadtxt('matrizteste.txt', dtype=float, delimiter=' ')
-    vetor_B = np.loadtxt('vetorteste.txt', dtype=float, delimiter=' ')
+    # Trabalho 1
+    '''
+    Prepare um programa computacional (na linguagem de sua preferência) para efetuar a solução
+    de um sistema linear de equações AX = B onde o usuário possa escolher entre os métodos:
+    1. Decomposição LU (ICOD =1);
+    2. Decomposição de Cholesky (ICOD =2)
+    3. Procedimento iterativo Jacobi (ICOD =3) e
+    4. Procedimento iterativo Gauss-Seidel (ICOD =4).
 
-    print(metodo_iterativo_jacobi(matriz_A, vetor_B))
-    print(metodo_iterativo_gauss_seidel(matriz_A, vetor_B))
+    Além disto, quando for requisitado pelo usuário e a técnica de solução permitir (caso contrário
+    deve ser emitido um “warning”), que seja efetuado o cálculo o determinante de A.
+
+    INPUTS do Programa (arquivo de entrada):
+    a) ordem N do sistema de equações
+    b) ICOD relativo ao método de análise
+    c) IDET = 0 não calcula determinante ou maior que 0 calcula o determinante
+    d) A matriz A e o vetor B
+    e) TOLm - tolerância máxima para a solução iterativa (qdo for o caso)
+
+    OUTPUTS do Programa (arquivo de saída):
+    a) Solução do sistema X;
+    b) Possíveis “erros de uso” (decomposições não são possíveis, possiblidade de não
+    convergência, etc.)
+    c) Determinante quando solicitado;
+    d) Número de iterações para convergência e histórico da variação do erro (TOL) da
+    solução nos casos dos métodos iterativos;
+
+    Obs.:
+    1) o programa deve ser desenvolvido visando o armazenamento mínimo de dados na
+    memória do computador (por exemplo, não deve ser criada uma nova matriz similar a
+    matriz A para a solução do sistema e equações);
+    2) não use rotinas prontas disponíveis na literatura/internet.
+    '''
+    parser = argparse.ArgumentParser(description='Programa 1 de Algebra Linear')
+    parser.add_argument('-im', '--matriz_A', type=str, help='Matriz A',required=True)
+    parser.add_argument('-ib', '--vetor_B', type=str, help='Vetor B',required=True)
+    parser.add_argument('-ic', '--icod', type=int, help='ICOD relativo ao método de análise; 1 - LU; 2 - Cholesky; 3 - Iterativo Jacobi;, 4 - Iterativo Gauss-Seidel',required=True)
+    parser.add_argument('-id', '--idet', type=int, help='IDET',default=0)
+    parser.add_argument('-it', '--tol', type=float, help='TOLm',default=0.0001)
+    args = parser.parse_args()
+
+    TOLm = args.tol
+    ICOD = args.icod
+    IDET = args.idet
+
+    matriz_A = np.loadtxt(args.matriz_A, dtype=float, delimiter=' ')
+    vetor_B = np.loadtxt(args.vetor_B, dtype=float, delimiter=' ')
+   
+    if ICOD == 1:
+        print("Decomposicao LU")
+        matriz_lu, vetorX = metodo_lu(matriz_A, vetor_B)
+        print("Matriz LU:\n", matriz_lu)
+        print("Resposta",vetorX) # resposta
+        if IDET:  
+            print("Determinante",functools.reduce(lambda x,y: x*y, matriz_lu.diagonal()))
+    elif ICOD == 2:
+        print("Decomposicao Cholesky")
+        matriz_cholesky, vetorX = metodo_cholesky(matriz_A, vetor_B)
+        print("Resposta:",vetorX)
+        print("Matriz Cholesky:\n", matriz_cholesky)
+        if IDET:  
+            print("Determinante",(functools.reduce(lambda x,y: x*y, matriz_cholesky.diagonal())**2))
+    elif ICOD == 3:
+        print("Metodo iterativo Jacobi")
+        vetorX, historico_residuo, numero_iteracoes = metodo_iterativo_jacobi(matriz_A, vetor_B, TOLm=TOLm )
+        print("Vetor Solucao",vetorX)
+        print("Historico residuo",historico_residuo)
+        print("N de iteracoes",numero_iteracoes)
+        if IDET:  
+            print("Nao e possivel fazer determinante de maneira otimizada por jacobi")
+    elif ICOD == 4:
+        print("Metodo iterativo Gauss Seidel")
+        vetorX, historico_residuo, numero_iteracoes = metodo_iterativo_gauss_seidel(matriz_A, vetor_B, TOLm=TOLm)
+        print("Vetor Solucao:",vetorX)
+        print("Historico residuo:",historico_residuo)
+        print("N de iteracoes:",numero_iteracoes)
+        if IDET:  
+            # calcula e printa determinante via gauss-seidel
+            print("Nao e possivel fazer determinante de maneira otimizada por gauss seidel")
+    else:
+        print("Error: ICOD não definido")
+        exit()
 
 if __name__ == '__main__':
     main()
